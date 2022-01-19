@@ -2,13 +2,16 @@
 
 namespace App\Entity;
 
-use App\Repository\DifficultyLevelRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\TagRepository;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
+use Gedmo\Timestampable\Traits\TimestampableEntity;
 
-#[ORM\Entity(repositoryClass: DifficultyLevelRepository::class)]
-class DifficultyLevel {
+#[ORM\Entity(repositoryClass: TagRepository::class)]
+class Tag
+{
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
@@ -17,14 +20,15 @@ class DifficultyLevel {
     #[ORM\Column(type: 'string', length: 255)]
     private $name;
 
-    #[ORM\Column(type: 'integer')]
-    private $level;
-
-    #[ORM\OneToMany(mappedBy: 'difficultyLevel', targetEntity: Recipe::class)]
+    #[ORM\ManyToMany(targetEntity: Recipe::class, inversedBy: 'tags')]
     private $recipes;
+
+    use TimestampableEntity;
 
     public function __construct() {
         $this->recipes = new ArrayCollection();
+        $this->createdAt = new DateTime();
+        $this->updatedAt = new DateTime();
     }
 
     public function getId(): ?int {
@@ -41,16 +45,6 @@ class DifficultyLevel {
         return $this;
     }
 
-    public function getLevel(): ?int {
-        return $this->level;
-    }
-
-    public function setLevel(int $level): self {
-        $this->level = $level;
-
-        return $this;
-    }
-
     /**
      * @return Collection|Recipe[]
      */
@@ -61,19 +55,13 @@ class DifficultyLevel {
     public function addRecipe(Recipe $recipe): self {
         if (!$this->recipes->contains($recipe)) {
             $this->recipes[] = $recipe;
-            $recipe->setDifficultyLevel($this);
         }
 
         return $this;
     }
 
     public function removeRecipe(Recipe $recipe): self {
-        if ($this->recipes->removeElement($recipe)) {
-            // set the owning side to null (unless already changed)
-            if ($recipe->getDifficultyLevel() === $this) {
-                $recipe->setDifficultyLevel(null);
-            }
-        }
+        $this->recipes->removeElement($recipe);
 
         return $this;
     }
